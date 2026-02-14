@@ -1,22 +1,44 @@
-# Comfycat Workspace Agent
+# Comfycat Workspace
 
-Lightweight HTTP agent that runs inside Fly Machines to execute commands and stream output for the Comfycat platform.
+Multi-template workspace images for the Comfycat platform. Each template is a Docker image that runs inside a Fly Machine, containing the workspace agent + Claude Code + a pre-scaffolded app.
 
-## Architecture
+## Structure
 
-This is a minimal Elixir/Plug HTTP server (no Phoenix, no Ecto) that runs alongside Claude Code inside a Docker container on Fly Machines. Comfycat creates one machine per user project and communicates with this agent over HTTPS.
+```
+agent/              # Shared workspace agent (Elixir/Plug HTTP server)
+templates/
+  default/          # Blank Phoenix app (no Ecto, no mailer)
+  phoenix-full/     # Phoenix with Ecto + PostgreSQL
+Dockerfile.base     # Base image: Elixir + Node + Claude Code + agent
+.github/workflows/  # CI: builds and pushes images to Fly registry
+```
 
-## Endpoints
+## How It Works
+
+1. `Dockerfile.base` builds the base image with system deps, Claude Code, and the agent release
+2. Each `templates/*/Dockerfile` extends the base image and pre-scaffolds a specific app type
+3. Comfycat selects the right image when creating a Fly Machine based on the user's chosen template
+
+## Image Naming
+
+- Base: `registry.fly.io/comfycat-workspace-base`
+- Templates: `registry.fly.io/comfycat-workspace-{template-name}` (e.g., `comfycat-workspace-default`)
+
+## Agent
+
+Minimal Elixir/Plug HTTP server that runs alongside Claude Code. See `agent/` for source.
+
+### Endpoints
 
 - `GET /health` — readiness probe (no auth)
 - `POST /exec` — execute a command, stream output via SSE
 - `PUT /files` — write a file to disk
 
-## Auth
+### Auth
 
-All endpoints except `/health` require `Authorization: Bearer <AGENT_TOKEN>` header. The token is set via `AGENT_TOKEN` env var at machine creation time.
+All endpoints except `/health` require `Authorization: Bearer <AGENT_TOKEN>` header.
 
-## Environment Variables
+### Environment Variables
 
 - `AGENT_TOKEN` — bearer token for auth (required)
 - `AGENT_PORT` — port to listen on (default: 9090)
@@ -25,15 +47,15 @@ All endpoints except `/health` require `Authorization: Bearer <AGENT_TOKEN>` hea
 ## Commands
 
 ```bash
+cd agent
 mix deps.get     # Install dependencies
 mix test         # Run tests
 mix compile      # Compile
-MIX_ENV=prod mix release  # Build release
 ```
 
-## Tech Stack
+## Adding a New Template
 
-- Elixir 1.19.5, OTP 28
-- Plug + Bandit (HTTP server)
-- Jason (JSON)
-- No external dependencies beyond these three
+1. Create `templates/{name}/Dockerfile` extending the base image
+2. Pre-scaffold the app in the Dockerfile (install deps, compile)
+3. Push to main — CI will build and push `comfycat-workspace-{name}` to Fly registry
+4. Add the template to `Comfycat.Templates` in the comfycat repo with `image: "registry.fly.io/comfycat-workspace-{name}:latest"`

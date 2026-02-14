@@ -1,6 +1,6 @@
-_build/
-deps/
-doc/
-test/
+agent/_build/
+agent/deps/
+agent/doc/
+agent/test/
 .git/
 *.md

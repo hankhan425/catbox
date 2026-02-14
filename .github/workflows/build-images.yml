@@ -1,0 +1,116 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FLY_REGISTRY: registry.fly.io
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.changes.outputs.base }}
+      templates: ${{ steps.templates.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect base image changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -qE '^(Dockerfile\.base|agent/)'; then
+            echo "base=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect template changes
+        id: templates
+        run: |
+          # On workflow_dispatch or base change, build all templates
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.changes.outputs.base }}" = "true" ]; then
+            DIRS=$(find templates -name Dockerfile -exec dirname {} \; | sort)
+          else
+            # Only build templates whose files changed
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            DIRS=""
+            for dir in templates/*/; do
+              dir="${dir%/}"
+              if echo "$CHANGED" | grep -q "^${dir}/"; then
+                DIRS="$DIRS $dir"
+              fi
+            done
+          fi
+
+          # Build JSON matrix
+          if [ -z "$(echo $DIRS | tr -d ' ')" ]; then
+            echo 'matrix=[]' >> "$GITHUB_OUTPUT"
+          else
+            JSON=$(echo $DIRS | tr ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+            echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-base:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.base == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Authenticate to Fly registry
+        run: flyctl auth docker
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Build and push base image
+        run: |
+          docker build -f Dockerfile.base \
+            -t ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:latest \
+            -t ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:${{ github.sha }} \
+            .
+          docker push ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:latest
+          docker push ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:${{ github.sha }}
+
+  build-templates:
+    needs: [detect-changes, build-base]
+    if: |
+      always() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.build-base.result == 'success' || needs.build-base.result == 'skipped') &&
+      needs.detect-changes.outputs.templates != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        template: ${{ fromJson(needs.detect-changes.outputs.templates) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Authenticate to Fly registry
+        run: flyctl auth docker
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Derive image name
+        id: meta
+        run: |
+          # templates/default -> comfycat-workspace-default
+          NAME=$(echo "${{ matrix.template }}" | sed 's|templates/||' | tr '/' '-')
+          echo "image_name=comfycat-workspace-${NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push template image
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE=${{ env.FLY_REGISTRY }}/comfycat-workspace-base:latest \
+            -t ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:latest \
+            -t ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }} \
+            ${{ matrix.template }}
+          docker push ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:latest
+          docker push ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }}

@@ -1,6 +1,6 @@
-/_build/
-/deps/
-/doc/
+agent/_build/
+agent/deps/
+agent/doc/
 *.ez
 *.beam
 /tmp/

@@ -20,11 +20,11 @@ RUN useradd -m -s /bin/bash user
 
 # Build the agent release
 WORKDIR /opt/agent
-COPY mix.exs mix.lock* ./
+COPY agent/mix.exs agent/mix.lock* ./
 RUN mix local.hex --force && mix local.rebar --force
 RUN MIX_ENV=prod mix deps.get --only prod
-COPY config config/
-COPY lib lib/
+COPY agent/config config/
+COPY agent/lib lib/
 RUN MIX_ENV=prod mix release
 
 # Set up the user's app directory
