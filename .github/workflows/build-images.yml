@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  FLY_REGISTRY: registry.fly.io
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/comfycat-machines
 
 jobs:
   detect-changes:
@@ -58,24 +59,27 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.base == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Authenticate to Fly registry
-        run: flyctl auth docker
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push base image
         run: |
           docker build -f Dockerfile.base \
-            -t ${{ env.FLY_REGISTRY }}/comfycat-machines-base:latest \
-            -t ${{ env.FLY_REGISTRY }}/comfycat-machines-base:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:${{ github.sha }} \
             .
-          docker push ${{ env.FLY_REGISTRY }}/comfycat-machines-base:latest
-          docker push ${{ env.FLY_REGISTRY }}/comfycat-machines-base:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:${{ github.sha }}
 
   build-templates:
     needs: [detect-changes, build-base]
@@ -85,18 +89,21 @@ jobs:
       (needs.build-base.result == 'success' || needs.build-base.result == 'skipped') &&
       needs.detect-changes.outputs.templates != '[]'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         template: ${{ fromJson(needs.detect-changes.outputs.templates) }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Authenticate to Fly registry
-        run: flyctl auth docker
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Derive image name
         id: meta
@@ -108,9 +115,9 @@ jobs:
       - name: Build and push template image
         run: |
           docker build \
-            --build-arg BASE_IMAGE=${{ env.FLY_REGISTRY }}/comfycat-machines-base:latest \
-            -t ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:latest \
-            -t ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }} \
+            --build-arg BASE_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest \
+            -t ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.meta.outputs.image_name }}:latest \
+            -t ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }} \
             ${{ matrix.template }}
-          docker push ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:latest
-          docker push ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.meta.outputs.image_name }}:latest
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }}

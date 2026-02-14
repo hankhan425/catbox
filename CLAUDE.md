@@ -10,7 +10,7 @@ templates/
   default/          # Blank Phoenix app (no Ecto, no mailer)
   phoenix-full/     # Phoenix with Ecto + PostgreSQL
 Dockerfile.base     # Base image: Elixir + Node + Claude Code + agent
-.github/workflows/  # CI: builds and pushes images to Fly registry
+.github/workflows/  # CI: builds and pushes images to GHCR
 ```
 
 ## How It Works
@@ -21,8 +21,8 @@ Dockerfile.base     # Base image: Elixir + Node + Claude Code + agent
 
 ## Image Naming
 
-- Base: `registry.fly.io/comfycat-machines-base`
-- Templates: `registry.fly.io/comfycat-machines-{template-name}` (e.g., `comfycat-machines-default`)
+- Base: `ghcr.io/{owner}/comfycat-machines-base`
+- Templates: `ghcr.io/{owner}/comfycat-machines-{template-name}` (e.g., `comfycat-machines-default`)
 
 ## Agent
 
@@ -57,5 +57,5 @@ mix compile      # Compile
 
 1. Create `templates/{name}/Dockerfile` extending the base image
 2. Pre-scaffold the app in the Dockerfile (install deps, compile)
-3. Push to main — CI will build and push `comfycat-machines-{name}` to Fly registry
-4. Add the template to `Comfycat.Templates` in the comfycat repo with `image: "registry.fly.io/comfycat-machines-{name}:latest"`
+3. Push to main — CI will build and push `comfycat-machines-{name}` to GHCR
+4. Add the template to `Comfycat.Templates` in the comfycat repo with `image: "ghcr.io/{owner}/comfycat-machines-{name}:latest"`
