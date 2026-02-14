@@ -21,8 +21,8 @@ Dockerfile.base     # Base image: Elixir + Node + Claude Code + agent
 
 ## Image Naming
 
-- Base: `registry.fly.io/comfycat-workspace-base`
-- Templates: `registry.fly.io/comfycat-workspace-{template-name}` (e.g., `comfycat-workspace-default`)
+- Base: `registry.fly.io/comfycat-machines-base`
+- Templates: `registry.fly.io/comfycat-machines-{template-name}` (e.g., `comfycat-machines-default`)
 
 ## Agent
 
@@ -57,5 +57,5 @@ mix compile      # Compile
 
 1. Create `templates/{name}/Dockerfile` extending the base image
 2. Pre-scaffold the app in the Dockerfile (install deps, compile)
-3. Push to main — CI will build and push `comfycat-workspace-{name}` to Fly registry
-4. Add the template to `Comfycat.Templates` in the comfycat repo with `image: "registry.fly.io/comfycat-workspace-{name}:latest"`
+3. Push to main — CI will build and push `comfycat-machines-{name}` to Fly registry
+4. Add the template to `Comfycat.Templates` in the comfycat repo with `image: "registry.fly.io/comfycat-machines-{name}:latest"`

@@ -71,11 +71,11 @@ jobs:
       - name: Build and push base image
         run: |
           docker build -f Dockerfile.base \
-            -t ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:latest \
-            -t ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:${{ github.sha }} \
+            -t ${{ env.FLY_REGISTRY }}/comfycat-machines-base:latest \
+            -t ${{ env.FLY_REGISTRY }}/comfycat-machines-base:${{ github.sha }} \
             .
-          docker push ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:latest
-          docker push ${{ env.FLY_REGISTRY }}/comfycat-workspace-base:${{ github.sha }}
+          docker push ${{ env.FLY_REGISTRY }}/comfycat-machines-base:latest
+          docker push ${{ env.FLY_REGISTRY }}/comfycat-machines-base:${{ github.sha }}
 
   build-templates:
     needs: [detect-changes, build-base]
@@ -101,14 +101,14 @@ jobs:
       - name: Derive image name
         id: meta
         run: |
-          # templates/default -> comfycat-workspace-default
+          # templates/default -> comfycat-machines-default
           NAME=$(echo "${{ matrix.template }}" | sed 's|templates/||' | tr '/' '-')
-          echo "image_name=comfycat-workspace-${NAME}" >> "$GITHUB_OUTPUT"
+          echo "image_name=comfycat-machines-${NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push template image
         run: |
           docker build \
-            --build-arg BASE_IMAGE=${{ env.FLY_REGISTRY }}/comfycat-workspace-base:latest \
+            --build-arg BASE_IMAGE=${{ env.FLY_REGISTRY }}/comfycat-machines-base:latest \
             -t ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:latest \
             -t ${{ env.FLY_REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ github.sha }} \
             ${{ matrix.template }}

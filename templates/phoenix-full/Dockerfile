@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=registry.fly.io/comfycat-workspace-base:latest
+ARG BASE_IMAGE=registry.fly.io/comfycat-machines-base:latest
 FROM ${BASE_IMAGE}
 
 # Pre-scaffold Phoenix app with Ecto + PostgreSQL
