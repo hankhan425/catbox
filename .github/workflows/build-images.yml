@@ -7,7 +7,7 @@ on:
 
 env:
   FLY_REGISTRY: registry.fly.io
-  FLY_ORG: personal
+  FLY_ORG: comfycat
 
 jobs:
   detect-changes:
