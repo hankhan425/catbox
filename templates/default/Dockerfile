@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ghcr.io/han2k/comfycat-machines-base:latest
+ARG BASE_IMAGE=registry.fly.io/comfycat-machines-base:latest
 FROM ${BASE_IMAGE}
 
 # Pre-scaffold a blank Phoenix app (no Ecto, no mailer)
