@@ -1,4 +1,4 @@
-# Comfycat Workspace
+# catbox
 
 Multi-template workspace images for the Comfycat platform. Each template is a Docker image that runs inside a Fly Machine, containing the workspace agent + Claude Code + a pre-scaffolded app.
 
