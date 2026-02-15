@@ -97,14 +97,19 @@ defmodule WorkspaceAgent.ExecHandler do
     escaped_args = Enum.map(args, &shell_escape/1)
     inner = Enum.join([shell_escape(cmd) | escaped_args], " ")
 
-    # Force line-buffered stdout so output streams in real-time through the port.
-    # Without this, Node.js (claude) fully buffers stdout when piped, so no SSE
-    # events arrive until the process exits.
-    if stdbuf_available?() do
-      "stdbuf -oL #{inner}"
-    else
-      inner
+    # Force unbuffered stdout so output streams in real-time through the port.
+    # Node.js fully buffers stdout when piped (not a TTY), so stdbuf alone
+    # doesn't work. `unbuffer` (from expect) allocates a pseudo-TTY, which
+    # makes Node.js use line buffering. Falls back to stdbuf, then raw.
+    cond do
+      unbuffer_available?() -> "unbuffer #{inner}"
+      stdbuf_available?() -> "stdbuf -oL #{inner}"
+      true -> inner
     end
+  end
+
+  defp unbuffer_available? do
+    System.find_executable("unbuffer") != nil
   end
 
   defp stdbuf_available? do
