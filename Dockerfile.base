@@ -37,7 +37,7 @@ RUN chmod -R a+rX /opt/agent/_build/prod/rel/workspace_agent
 USER user
 RUN mix local.hex --force && mix local.rebar --force
 
-EXPOSE 8080 9090
+EXPOSE 4000 9090
 
 # Run as non-root user
 CMD ["/opt/agent/_build/prod/rel/workspace_agent/bin/workspace_agent", "start"]

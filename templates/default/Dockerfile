@@ -6,7 +6,7 @@ WORKDIR /home/user
 RUN mix archive.install hex phx_new --force && \
     mix phx.new app --no-install --no-ecto --no-mailer --no-dashboard && \
     cd app && \
-    sed -i 's/http: \[ip: {127, 0, 0, 1}, port: 4000/http: [ip: {0, 0, 0, 0}, port: 8080/' config/dev.exs && \
+    sed -i 's/http: \[ip: {127, 0, 0, 1}\]/http: [ip: {0, 0, 0, 0}]/' config/dev.exs && \
     mix deps.get && mix compile
 
 # Start both the Phoenix app and the workspace agent (runs as non-root user from base image)
