@@ -17,10 +17,11 @@ defmodule WorkspaceAgent.AuthPlug do
   def call(conn, _opts) do
     expected_token = System.get_env("AGENT_TOKEN")
 
-    case get_req_header(conn, "authorization") do
-      ["Bearer " <> token] when token == expected_token and expected_token != nil ->
-        conn
-
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         true <- is_binary(expected_token) and expected_token != "",
+         true <- Plug.Crypto.secure_compare(token, expected_token) do
+      conn
+    else
       _ ->
         conn
         |> put_resp_content_type("application/json")

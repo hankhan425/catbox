@@ -30,12 +30,14 @@ RUN MIX_ENV=prod mix release
 # Ensure user home is owned correctly
 RUN chown -R user:user /home/user
 
+# Make agent release readable by user (agent runs as non-root)
+RUN chmod -R a+rX /opt/agent/_build/prod/rel/workspace_agent
+
 # Install hex and rebar for the user (needed for Phoenix project bootstrap)
 USER user
 RUN mix local.hex --force && mix local.rebar --force
-USER root
 
 EXPOSE 8080 9090
 
-# Start the agent
+# Run as non-root user
 CMD ["/opt/agent/_build/prod/rel/workspace_agent/bin/workspace_agent", "start"]

@@ -160,7 +160,7 @@ defmodule WorkspaceAgent.RouterTest do
 
   describe "PUT /files" do
     test "writes a file to disk" do
-      path = Path.join(System.tmp_dir!(), "workspace_test_#{:rand.uniform(100_000)}.txt")
+      path = "/tmp/workspace_test_#{:rand.uniform(100_000)}.txt"
       on_exit(fn -> File.rm(path) end)
 
       conn =
@@ -172,7 +172,7 @@ defmodule WorkspaceAgent.RouterTest do
     end
 
     test "creates parent directories" do
-      dir = Path.join(System.tmp_dir!(), "workspace_test_#{:rand.uniform(100_000)}")
+      dir = "/tmp/workspace_test_#{:rand.uniform(100_000)}"
       path = Path.join(dir, "sub/deep/file.txt")
       on_exit(fn -> File.rm_rf(dir) end)
 
@@ -187,6 +187,23 @@ defmodule WorkspaceAgent.RouterTest do
     test "returns 400 without path parameter" do
       conn = authed_conn(:put, "/files", "content") |> call()
       assert conn.status == 400
+    end
+
+    test "rejects path traversal to disallowed directories" do
+      conn =
+        authed_conn(:put, "/files?path=#{URI.encode("/etc/crontab")}", "malicious")
+        |> call()
+
+      assert conn.status == 403
+      assert Jason.decode!(conn.resp_body)["error"] == "path not allowed"
+    end
+
+    test "rejects path traversal via relative paths" do
+      conn =
+        authed_conn(:put, "/files?path=#{URI.encode("/home/user/../../etc/passwd")}", "malicious")
+        |> call()
+
+      assert conn.status == 403
     end
   end
 
