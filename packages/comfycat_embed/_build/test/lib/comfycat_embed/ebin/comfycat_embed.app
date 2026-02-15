@@ -1,1 +1,0 @@
-{application,comfycat_embed,[{modules,['Elixir.ComfycatEmbed','Elixir.ComfycatEmbed.AllowIframe','Elixir.ComfycatEmbed.Inspector']},{optional_applications,[]},{applications,[kernel,stdlib,elixir,logger,plug,jason]},{description,"comfycat_embed"},{registered,[]},{vsn,"0.1.0"}]}.

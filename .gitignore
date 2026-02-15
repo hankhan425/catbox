@@ -1,5 +1,7 @@
 agent/_build/
 agent/deps/
+packages/*/_build/
+packages/*/deps/
 agent/doc/
 *.ez
 *.beam
