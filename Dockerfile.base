@@ -10,7 +10,8 @@ RUN apk add --no-cache \
     inotify-tools \
     bubblewrap \
     socat \
-    bash
+    bash \
+    coreutils
 
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code

@@ -95,7 +95,20 @@ defmodule WorkspaceAgent.ExecHandler do
   defp build_shell_command(cmd, args) do
     # Escape each argument for shell safety
     escaped_args = Enum.map(args, &shell_escape/1)
-    Enum.join([shell_escape(cmd) | escaped_args], " ")
+    inner = Enum.join([shell_escape(cmd) | escaped_args], " ")
+
+    # Force line-buffered stdout so output streams in real-time through the port.
+    # Without this, Node.js (claude) fully buffers stdout when piped, so no SSE
+    # events arrive until the process exits.
+    if stdbuf_available?() do
+      "stdbuf -oL #{inner}"
+    else
+      inner
+    end
+  end
+
+  defp stdbuf_available? do
+    System.find_executable("stdbuf") != nil
   end
 
   defp shell_escape(arg) do
