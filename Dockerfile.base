@@ -27,6 +27,14 @@ COPY agent/config config/
 COPY agent/lib lib/
 RUN MIX_ENV=prod mix release
 
+# Pre-compile comfycat_embed package (iframe + inspector plugs for generated apps)
+WORKDIR /opt/comfycat_embed
+COPY packages/comfycat_embed/mix.exs packages/comfycat_embed/mix.lock* ./
+RUN MIX_ENV=prod mix deps.get --only prod
+COPY packages/comfycat_embed/lib lib/
+COPY packages/comfycat_embed/priv priv/
+RUN MIX_ENV=prod mix compile
+
 # Ensure user home is owned correctly
 RUN chown -R user:user /home/user
 

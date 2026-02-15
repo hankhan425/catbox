@@ -6,10 +6,12 @@ Multi-template workspace images for the Comfycat platform. Each template is a Do
 
 ```
 agent/              # Shared workspace agent (Elixir/Plug HTTP server)
+packages/
+  comfycat_embed/   # Elixir package: iframe + inspector plugs for generated apps
 templates/
   default/          # Blank Phoenix app (no Ecto, no mailer)
   phoenix-full/     # Phoenix with Ecto + PostgreSQL
-Dockerfile.base     # Base image: Elixir + Node + Claude Code + agent
+Dockerfile.base     # Base image: Elixir + Node + Claude Code + agent + comfycat_embed
 .github/workflows/  # CI: builds and pushes images to Fly registry
 ```
 
@@ -53,15 +55,25 @@ mix test         # Run tests
 mix compile      # Compile
 ```
 
-## Iframe Compatibility
+## ComfycatEmbed Package
 
-Generated apps are previewed inside an iframe on Comfycat (different origin). This means:
+The `comfycat_embed` package (`packages/comfycat_embed/`) provides plugs for iframe embedding and element inspection. It is pre-compiled in the base image at `/opt/comfycat_embed` and added as a path dependency to generated apps.
 
-- **Override `put_secure_browser_headers` to remove `frame-ancestors 'self'`.** Phoenix 1.8+ sets `content-security-policy: base-uri 'self'; frame-ancestors 'self'` by default, which blocks cross-origin iframe embedding. Templates must pass a custom CSP map that omits `frame-ancestors`. See the `sed` in `templates/default/Dockerfile`.
-- **The app must listen on `0.0.0.0:4000`** (not `127.0.0.1`). Fly's proxy routes external HTTPS traffic to internal port 4000. Templates sed `config/dev.exs` to change the IP binding.
+### Plugs
+
+- **`ComfycatEmbed.AllowIframe`** — Strips `x-frame-options` and overrides CSP to allow cross-origin iframe embedding
+- **`ComfycatEmbed.Inspector`** — Injects `comfycat-inspector.js` before `</body>` in HTML responses, enabling element selection in the preview
+
+### Iframe Compatibility
+
+Generated apps are previewed inside an iframe on Comfycat (different origin). The `ComfycatEmbed.AllowIframe` plug handles this automatically. Additional requirements:
+
+- **The app must listen on `0.0.0.0:4000`** (not `127.0.0.1`). Fly's proxy routes external HTTPS traffic to internal port 4000.
+- **NEVER remove the `ComfycatEmbed.AllowIframe` or `ComfycatEmbed.Inspector` plugs from the router.**
+- **NEVER remove the `comfycat_embed` dependency from `mix.exs`.**
 - **Do not add `x-frame-options`** headers or any CSP directive that blocks framing.
 
-When adding new templates, ensure these constraints are met or the preview iframe will not work.
+When adding new templates, ensure `comfycat_embed` is added as a dependency and both plugs are in the router pipeline.
 
 ## Adding a New Template
 

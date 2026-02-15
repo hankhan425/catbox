@@ -7,8 +7,9 @@ RUN mix archive.install hex phx_new --force && \
     mix phx.new app --no-install --no-ecto --no-mailer --no-dashboard && \
     cd app && \
     sed -i 's/http: \[ip: {127, 0, 0, 1}\]/http: [ip: {0, 0, 0, 0}]/' config/dev.exs && \
-    sed -i '/plug :put_secure_browser_headers/a\    plug :allow_iframe' lib/app_web/router.ex && \
-    sed -i '$ i\  defp allow_iframe(conn, _opts), do: conn |> delete_resp_header("x-frame-options") |> put_resp_header("content-security-policy", "base-uri '\''self'\''")' lib/app_web/router.ex && \
+    sed -i '/defp deps do/,/end/ s/\[/[\n      {:comfycat_embed, path: "\/opt\/comfycat_embed"},/' mix.exs && \
+    sed -i '/plug :put_secure_browser_headers/a\    plug ComfycatEmbed.AllowIframe\n    plug ComfycatEmbed.Inspector' lib/app_web/router.ex && \
+    cp /opt/comfycat_embed/priv/static/comfycat-inspector.js priv/static/comfycat-inspector.js && \
     mix deps.get && mix compile
 
 # Start both the Phoenix app and the workspace agent (runs as non-root user from base image)
