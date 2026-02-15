@@ -57,9 +57,9 @@ mix compile      # Compile
 
 Generated apps are previewed inside an iframe on Comfycat (different origin). This means:
 
-- **No `x-frame-options` header.** Phoenix sets `x-frame-options: SAMEORIGIN` by default via `put_secure_browser_headers`. Templates must override this to omit the header, otherwise the iframe will show a blank page. See the `sed` in `templates/default/Dockerfile` that replaces `put_secure_browser_headers` with a custom map excluding `x-frame-options`.
+- **Override `put_secure_browser_headers` to remove `frame-ancestors 'self'`.** Phoenix 1.8+ sets `content-security-policy: base-uri 'self'; frame-ancestors 'self'` by default, which blocks cross-origin iframe embedding. Templates must pass a custom CSP map that omits `frame-ancestors`. See the `sed` in `templates/default/Dockerfile`.
 - **The app must listen on `0.0.0.0:4000`** (not `127.0.0.1`). Fly's proxy routes external HTTPS traffic to internal port 4000. Templates sed `config/dev.exs` to change the IP binding.
-- **Do not add `Content-Security-Policy: frame-ancestors`** directives that would block embedding from the Comfycat domain.
+- **Do not add `x-frame-options`** headers or any CSP directive that blocks framing.
 
 When adding new templates, ensure these constraints are met or the preview iframe will not work.
 
