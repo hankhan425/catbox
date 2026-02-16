@@ -6,12 +6,16 @@ defmodule ComfycatEmbed.Inspector do
   and send context (tag, selector, page, text) back to the parent frame
   via `postMessage`.
 
+  The script is inlined directly to avoid dependency on Plug.Static config
+  (the generated app's `only` whitelist may not include the JS file).
+
   Only injects into responses with `text/html` content type.
   """
 
   @behaviour Plug
 
-  @script_tag ~s(<script src="/comfycat-inspector.js"></script>)
+  @inspector_js File.read!(Path.join(:code.priv_dir(:comfycat_embed), "static/comfycat-inspector.js"))
+  @script_tag "<script>#{@inspector_js}</script>"
 
   @impl true
   def init(opts), do: opts

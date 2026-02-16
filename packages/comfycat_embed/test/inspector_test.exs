@@ -20,7 +20,9 @@ defmodule ComfycatEmbed.InspectorTest do
       conn(:get, "/")
       |> call_with_response(200, [{"content-type", "text/html; charset=utf-8"}], "<html><body><p>Hello</p></body></html>")
 
-    assert conn.resp_body =~ ~s(<script src="/comfycat-inspector.js"></script></body>)
+    assert conn.resp_body =~ "<script>(function"
+    assert conn.resp_body =~ "comfycat:start-inspect"
+    assert conn.resp_body =~ "</script></body>"
     assert conn.resp_body =~ "<p>Hello</p>"
   end
 
@@ -29,7 +31,7 @@ defmodule ComfycatEmbed.InspectorTest do
       conn(:get, "/api/data")
       |> call_with_response(200, [{"content-type", "application/json"}], ~s({"ok": true}))
 
-    refute conn.resp_body =~ "comfycat-inspector"
+    refute conn.resp_body =~ "comfycat:start-inspect"
   end
 
   test "does not inject when no </body> tag present" do
