@@ -1,10 +1,10 @@
 ARG BASE_IMAGE=registry.fly.io/comfycat-machines-base:latest
 FROM ${BASE_IMAGE}
 
-# Pre-scaffold a blank Phoenix app (no Ecto, no mailer)
+# Pre-scaffold a Phoenix app with Ecto and Swoosh mailer
 WORKDIR /home/user
 RUN mix archive.install hex phx_new --force && \
-    mix phx.new app --no-install --no-ecto --no-mailer --no-dashboard && \
+    mix phx.new app --no-install --no-dashboard && \
     cd app && \
     sed -i 's/http: \[ip: {127, 0, 0, 1}\]/http: [ip: {0, 0, 0, 0}]/' config/dev.exs && \
     sed -i '/defp deps do/,/end/ s/\[/[\n      {:comfycat_embed, path: "\/opt\/comfycat_embed"},/' mix.exs && \
