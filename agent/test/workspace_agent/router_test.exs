@@ -207,6 +207,89 @@ defmodule WorkspaceAgent.RouterTest do
     end
   end
 
+  describe "GET /files" do
+    test "reads an existing file" do
+      path = "/tmp/workspace_read_test_#{:rand.uniform(100_000)}.txt"
+      File.write!(path, "hello read test")
+      on_exit(fn -> File.rm(path) end)
+
+      conn = authed_conn(:get, "/files?path=#{URI.encode(path)}") |> call()
+
+      assert conn.status == 200
+      assert conn.resp_body == "hello read test"
+    end
+
+    test "returns 404 for missing file" do
+      conn = authed_conn(:get, "/files?path=#{URI.encode("/tmp/nonexistent_file.txt")}") |> call()
+      assert conn.status == 404
+    end
+
+    test "returns 400 without path parameter" do
+      conn = authed_conn(:get, "/files") |> call()
+      assert conn.status == 400
+    end
+
+    test "returns 403 for disallowed path" do
+      conn = authed_conn(:get, "/files?path=#{URI.encode("/etc/passwd")}") |> call()
+      assert conn.status == 403
+    end
+
+    test "returns 403 for path traversal" do
+      conn = authed_conn(:get, "/files?path=#{URI.encode("/home/user/../../etc/passwd")}") |> call()
+      assert conn.status == 403
+    end
+  end
+
+  describe "GET /files/tree" do
+    test "returns file list for a directory" do
+      dir = "/tmp/workspace_tree_test_#{:rand.uniform(100_000)}"
+      File.mkdir_p!(Path.join(dir, "lib"))
+      File.write!(Path.join(dir, "mix.exs"), "# mix")
+      File.write!(Path.join(dir, "lib/app.ex"), "# app")
+      on_exit(fn -> File.rm_rf(dir) end)
+
+      conn = authed_conn(:get, "/files/tree?path=#{URI.encode(dir)}") |> call()
+
+      assert conn.status == 200
+      body = Jason.decode!(conn.resp_body)
+      assert body["root"] == dir
+      assert "mix.exs" in body["files"]
+      assert "lib/app.ex" in body["files"]
+    end
+
+    test "skips ignored directories" do
+      dir = "/tmp/workspace_tree_ignore_#{:rand.uniform(100_000)}"
+      File.mkdir_p!(Path.join(dir, "_build"))
+      File.mkdir_p!(Path.join(dir, "deps"))
+      File.mkdir_p!(Path.join(dir, "node_modules"))
+      File.mkdir_p!(Path.join(dir, ".git"))
+      File.write!(Path.join(dir, "_build/compiled"), "x")
+      File.write!(Path.join(dir, "deps/dep.ex"), "x")
+      File.write!(Path.join(dir, "node_modules/pkg.js"), "x")
+      File.write!(Path.join(dir, ".git/HEAD"), "x")
+      File.write!(Path.join(dir, "mix.exs"), "# mix")
+      on_exit(fn -> File.rm_rf(dir) end)
+
+      conn = authed_conn(:get, "/files/tree?path=#{URI.encode(dir)}") |> call()
+
+      assert conn.status == 200
+      body = Jason.decode!(conn.resp_body)
+      assert body["files"] == ["mix.exs"]
+    end
+
+    test "defaults to /home/user/app when no path given" do
+      # This test just verifies the endpoint doesn't crash — the default path
+      # may not exist in the test environment, so it may return 404
+      conn = authed_conn(:get, "/files/tree") |> call()
+      assert conn.status in [200, 404]
+    end
+
+    test "returns 403 for disallowed path" do
+      conn = authed_conn(:get, "/files/tree?path=#{URI.encode("/etc")}") |> call()
+      assert conn.status == 403
+    end
+  end
+
   describe "unknown routes" do
     test "returns 404" do
       conn = authed_conn(:get, "/unknown") |> call()

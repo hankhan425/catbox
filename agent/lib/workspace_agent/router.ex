@@ -3,9 +3,11 @@ defmodule WorkspaceAgent.Router do
   HTTP router for the workspace agent.
 
   Endpoints:
-  - GET  /health  — readiness probe (no auth)
-  - POST /exec    — execute a command, stream output via SSE
-  - PUT  /files   — write a file to disk
+  - GET  /health      — readiness probe (no auth)
+  - POST /exec        — execute a command, stream output via SSE
+  - GET  /files       — read a file from disk
+  - GET  /files/tree  — list files in a directory
+  - PUT  /files       — write a file to disk
   """
 
   use Plug.Router
@@ -35,6 +37,23 @@ defmodule WorkspaceAgent.Router do
         conn
         |> put_resp_content_type("application/json")
         |> send_resp(400, Jason.encode!(%{error: "invalid JSON"}))
+    end
+  end
+
+  get "/files/tree" do
+    path = conn.query_params["path"] || "/home/user/app"
+    WorkspaceAgent.FileHandler.handle_tree(conn, path)
+  end
+
+  get "/files" do
+    path = conn.query_params["path"]
+
+    if is_nil(path) do
+      conn
+      |> put_resp_content_type("application/json")
+      |> send_resp(400, Jason.encode!(%{error: "path query parameter is required"}))
+    else
+      WorkspaceAgent.FileHandler.handle_read(conn, path)
     end
   end
 
