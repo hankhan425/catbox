@@ -1,0 +1,17 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": [
+        "api.anthropic.com",
+        "repo.hex.pm",
+        "builds.hex.pm",
+        "*.npmjs.org",
+        "registry.npmjs.org",
+        "cdn.jsdelivr.net"
+      ]
+    }
+  }
+}
