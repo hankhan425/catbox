@@ -3,7 +3,6 @@ defmodule WorkspaceAgent.Router do
   HTTP router for the workspace agent.
 
   Endpoints:
-  - GET  /terminal/ws — WebSocket PTY terminal (auth via ?token= query param)
   - GET  /health      — readiness probe (no auth)
   - POST /exec        — execute a command, stream output via SSE
   - GET  /files       — read a file from disk
@@ -20,22 +19,6 @@ defmodule WorkspaceAgent.Router do
   plug WorkspaceAgent.AuthPlug
   plug :match
   plug :dispatch
-
-  get "/terminal/ws" do
-    token = conn.query_params["token"]
-    expected_token = System.get_env("AGENT_TOKEN")
-
-    if is_binary(expected_token) and expected_token != "" and
-         Plug.Crypto.secure_compare(token || "", expected_token) do
-      conn
-      |> WebSockAdapter.upgrade(WorkspaceAgent.TerminalHandler, %{token: token}, timeout: :infinity)
-      |> halt()
-    else
-      conn
-      |> put_resp_content_type("application/json")
-      |> send_resp(401, Jason.encode!(%{error: "unauthorized"}))
-    end
-  end
 
   get "/health" do
     conn
