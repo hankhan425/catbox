@@ -13,6 +13,7 @@ defmodule WorkspaceAgent.AuthPlug do
 
   @impl true
   def call(%{request_path: "/health"} = conn, _opts), do: conn
+  def call(%{request_path: "/terminal/ws"} = conn, _opts), do: conn
 
   def call(conn, _opts) do
     expected_token = System.get_env("AGENT_TOKEN")

@@ -21,6 +21,7 @@ defmodule WorkspaceAgent.MixProject do
   defp deps do
     [
       {:bandit, "~> 1.0"},
+      {:websock_adapter, "~> 0.5"},
       {:plug, "~> 1.16"},
       {:jason, "~> 1.4"}
     ]
